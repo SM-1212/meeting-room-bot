@@ -1,69 +1,87 @@
-from flask import Flask, render_template, request, redirect, send_file
+from flask import Flask, render_template, request, redirect, url_for, send_file
 import csv
-import os
-from datetime import datetime
+from io import StringIO
 
 app = Flask(__name__)
-BOOKINGS_FILE = "bookings.csv"
 
-# Load bookings from file
-def load_bookings():
-    if not os.path.exists(BOOKINGS_FILE):
-        return []
-    with open(BOOKINGS_FILE, newline='') as f:
-        reader = csv.DictReader(f)
-        return list(reader)
+# In-memory list to store bookings
+bookings = []
 
-# Save bookings to file
-def save_bookings(bookings):
-    with open(BOOKINGS_FILE, "w", newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=bookings[0].keys())
-        writer.writeheader()
-        writer.writerows(bookings)
-
-@app.route("/")
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    bookings = load_bookings()
-    return render_template("index.html", bookings=bookings, error=None)
+    error = None
+    if request.method == 'POST':
+        # Extract form data
+        date = request.form['date']
+        name = request.form['name']
+        email = request.form['email']
+        department = request.form['department']
+        attendees = request.form['attendees']
+        room_type = request.form['room_type']
+        start_time = request.form['start_time']
+        end_time = request.form['end_time']
+        details = request.form['details']
 
-@app.route("/book", methods=["POST"])
-def book():
-    new = {
-        "Date": request.form["date"],
-        "Name": request.form["name"],
-        "Email": request.form["email"],
-        "Department": request.form["department"],
-        "Attendees": request.form["attendees"],
-        "Room Type": request.form["room_type"],
-        "Start Time": request.form["start_time"],
-        "End Time": request.form["end_time"],
-        "Details": request.form["details"]
-    }
+        # Check for booking conflicts
+        for booking in bookings:
+            if (
+                booking['date'] == date and
+                booking['room_type'] == room_type and
+                not (end_time <= booking['start_time'] or start_time >= booking['end_time'])
+            ):
+                error = "Room already booked for the selected time slot."
+                return render_template("index.html", bookings=bookings, error=error)
 
-    bookings = load_bookings()
+        # Add to bookings
+        bookings.append({
+            'date': date,
+            'name': name,
+            'email': email,
+            'department': department,
+            'attendees': attendees,
+            'room_type': room_type,
+            'start_time': start_time,
+            'end_time': end_time,
+            'details': details
+        })
 
-    # Check for conflict
-    for b in bookings:
-        if (b["Date"] == new["Date"] and
-            b["Room Type"] == new["Room Type"] and
-            not (new["End Time"] <= b["Start Time"] or new["Start Time"] >= b["End Time"])):
-            return render_template("index.html", bookings=bookings, error="Room already booked for this time slot.")
+        return redirect(url_for('index'))
 
-    bookings.append(new)
-    save_bookings(bookings)
-    return redirect("/")
+    return render_template("index.html", bookings=bookings, error=error)
 
-@app.route("/cancel/<int:index>", methods=["POST"])
-def cancel(index):
-    bookings = load_bookings()
+
+@app.route('/cancel/<int:index>', methods=['POST'])
+def cancel_booking(index):
     if 0 <= index < len(bookings):
         bookings.pop(index)
-        save_bookings(bookings)
-    return redirect("/")
+    return redirect(url_for('index'))
 
-@app.route("/download")
-def download():
-    return send_file(BOOKINGS_FILE, as_attachment=True)
 
-if __name__ == "__main__":
+@app.route('/download')
+def download_csv():
+    si = StringIO()
+    writer = csv.writer(si)
+    writer.writerow(['Date', 'Name', 'Email', 'Department', 'Attendees', 'Room Type', 'Start', 'End', 'Details'])
+    for booking in bookings:
+        writer.writerow([
+            booking['date'],
+            booking['name'],
+            booking['email'],
+            booking['department'],
+            booking['attendees'],
+            booking['room_type'],
+            booking['start_time'],
+            booking['end_time'],
+            booking['details']
+        ])
+    si.seek(0)
+    return send_file(
+        StringIO(si.getvalue()),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name='meeting_bookings.csv'
+    )
+
+
+if __name__ == '__main__':
     app.run(debug=True)
