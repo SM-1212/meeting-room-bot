@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, send_file
 import csv
-from io import StringIO
+from io import StringIO, BytesIO
 
 app = Flask(__name__)
 
@@ -49,13 +49,11 @@ def index():
 
     return render_template("index.html", bookings=bookings, error=error)
 
-
 @app.route('/cancel/<int:index>', methods=['POST'])
 def cancel_booking(index):
     if 0 <= index < len(bookings):
         bookings.pop(index)
     return redirect(url_for('index'))
-
 
 @app.route('/download')
 def download_csv():
@@ -74,14 +72,17 @@ def download_csv():
             booking['end_time'],
             booking['details']
         ])
-    si.seek(0)
+    
+    output = BytesIO()
+    output.write(si.getvalue().encode('utf-8'))
+    output.seek(0)
+
     return send_file(
-        StringIO(si.getvalue()),
+        output,
         mimetype='text/csv',
         as_attachment=True,
         download_name='meeting_bookings.csv'
     )
-
 
 if __name__ == '__main__':
     app.run(debug=True)
