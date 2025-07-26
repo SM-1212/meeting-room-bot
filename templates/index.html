@@ -1,196 +1,152 @@
-<div style="text-align: center; padding: 20px;">
-  <img src="{{ url_for('static', filename='globe_logo.png') }}" alt="Globe Teleservices Logo" style="height: 80px;">
-</div>
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Meeting Room Booking - Globe Teleservices</title>
+    <meta charset="UTF-8">
+    <title>Meeting Room Booking</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            font-family: 'Segoe UI', sans-serif;
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(to right, #f0f4f7, #dff1ff);
-            color: #333;
+            background-color: #eaf6fb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .container {
-            width: 90%;
-            max-width: 1000px;
-            margin: auto;
-            padding: 20px;
+            margin-top: 40px;
         }
         .logo {
-            text-align: center;
-            margin-top: 30px;
-        }
-        .logo img {
-            width: 280px;
-        }
-        h1 {
-            text-align: center;
-            color: #1b3a57;
-            margin-bottom: 20px;
-        }
-        form, table {
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-        label {
             display: block;
-            font-weight: bold;
-            margin-top: 15px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 100px;
         }
-        input, select, textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #cbd6e2;
-            border-radius: 5px;
-            margin-top: 5px;
-        }
-        button {
-            background: #007acc;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 5px;
-            margin-top: 20px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        button:hover {
-            background: #005fa3;
-        }
-        .cancel-btn {
-            background: #ff4d4d;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .cancel-btn:hover {
-            background: #cc0000;
-        }
-        .error {
-            background: #ffe0e0;
-            color: #cc0000;
-            padding: 10px;
-            border: 1px solid #cc0000;
-            border-radius: 5px;
-            margin-bottom: 20px;
+        h2 {
             text-align: center;
+            font-weight: 700;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            color: #2b3e50;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th {
-            background-color: #007acc;
+        .table th {
+            background-color: #0077b6;
             color: white;
-            padding: 12px;
         }
-        td {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
+        .btn-danger {
+            padding: 2px 8px;
+            font-size: 14px;
         }
-        .download-btn {
-            background: #28a745;
-            margin-top: 0;
+        .form-label {
+            margin-top: 10px;
+            font-weight: 600;
         }
-        .download-btn:hover {
-            background: #1e7e34;
+        .form-select, .form-control {
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="logo">
-            <img src="/static/globe-logo.png" alt="Globe Teleservices Logo">
-        </div>
-
-        <h1>Meeting Room Booking</h1>
-
+        <!-- ✅ Only valid logo retained -->
+        <img src="{{ url_for('static', filename='globe_logo.png') }}" alt="Globe Teleservices Logo" class="logo">
+        
+        <h2>Meeting Room Booking</h2>
+        
         {% if error %}
-            <div class="error">{{ error }}</div>
+            <div class="alert alert-danger">{{ error }}</div>
         {% endif %}
-
-        <form method="POST" action="/book">
-            <label>Date:</label>
-            <input type="date" name="date" required>
-
-            <label>Name of Booking Person:</label>
-            <input type="text" name="name" required>
-
-            <label>Email ID:</label>
-            <input type="email" name="email" required>
-
-            <label>Department:</label>
-            <input type="text" name="department" required>
-
-            <label>No. of Attendees:</label>
-            <input type="number" name="attendees" required>
-
-            <label>Meeting Room Type:</label>
-            <select name="room_type" required>
-                <option value="">-- Select Room Type --</option>
-                <option value="Conference Room">Conference Room</option>
-                <option value="Meeting Room">Meeting Room</option>
-                <option value="Discussion Room">Discussion Room</option>
-            </select>
-
-            <label>Start Time:</label>
-            <input type="time" name="start_time" required>
-
-            <label>End Time:</label>
-            <input type="time" name="end_time" required>
-
-            <label>Meeting Details:</label>
-            <textarea name="details" rows="4" required></textarea>
-
-            <button type="submit">Book Room</button>
+        
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Date:</label>
+                    <input type="date" name="date" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Name of Booking Person:</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Email ID:</label>
+                    <input type="email" name="email" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Department:</label>
+                    <input type="text" name="department" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">No. of Attendees:</label>
+                    <input type="number" name="attendees" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Meeting Room Type:</label>
+                    <select name="room_type" class="form-select" required>
+                        <option value="">-- Select Room Type --</option>
+                        <option value="Conference Room">Conference Room</option>
+                        <option value="Meeting Room">Meeting Room</option>
+                        <option value="Discussion Room">Discussion Room</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Start Time:</label>
+                    <input type="time" name="start_time" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">End Time:</label>
+                    <input type="time" name="end_time" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Meeting Details:</label>
+                    <input type="text" name="details" class="form-control">
+                </div>
+            </div>
+            <br>
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary">Book Meeting Room</button>
+                <a href="/download" class="btn btn-success">Download CSV</a>
+            </div>
         </form>
 
-        <form method="GET" action="/download">
-            <button type="submit" class="download-btn">? Download All Bookings as CSV</button>
-        </form>
+        <br><hr><br>
 
-        <h2>Bookings List</h2>
-        <table>
-            <tr>
-                <th>Date</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Department</th>
-                <th>Attendees</th>
-                <th>Room Type</th>
-                <th>Start Time</th>
-                <th>End Time</th>
-                <th>Details</th>
-                <th>Action</th>
-            </tr>
-            {% for booking in bookings %}
-            <tr>
-                <td>{{ booking["Date"] }}</td>
-                <td>{{ booking["Name"] }}</td>
-                <td>{{ booking["Email"] }}</td>
-                <td>{{ booking["Department"] }}</td>
-                <td>{{ booking["Attendees"] }}</td>
-                <td>{{ booking["Room Type"] }}</td>
-                <td>{{ booking["Start Time"] }}</td>
-                <td>{{ booking["End Time"] }}</td>
-                <td>{{ booking["Details"] }}</td>
-                <td>
-                    <form method="POST" action="/cancel/{{ loop.index0 }}">
-                        <button class="cancel-btn" type="submit">? Cancel</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
+        <h4 class="text-center">Bookings Made</h4>
+        {% if bookings %}
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Department</th>
+                    <th>Attendees</th>
+                    <th>Room Type</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Details</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bookings %}
+                <tr>
+                    <td>{{ booking.date }}</td>
+                    <td>{{ booking.name }}</td>
+                    <td>{{ booking.email }}</td>
+                    <td>{{ booking.department }}</td>
+                    <td>{{ booking.attendees }}</td>
+                    <td>{{ booking.room_type }}</td>
+                    <td>{{ booking.start_time }}</td>
+                    <td>{{ booking.end_time }}</td>
+                    <td>{{ booking.details }}</td>
+                    <td>
+                        <form action="/cancel/{{ loop.index0 }}" method="POST" style="display:inline;">
+                            <button type="submit" class="btn btn-danger">Cancel</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
+        {% else %}
+        <p class="text-center">No bookings yet.</p>
+        {% endif %}
     </div>
 </body>
 </html>
