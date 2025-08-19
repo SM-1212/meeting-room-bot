@@ -18,7 +18,8 @@ def index():
 
     # ✅ Handle new booking submission
     if request.method == 'POST' and "filter" not in request.form:
-        date = request.form['date']
+        from_date = request.form['from_date']
+        to_date = request.form['to_date']
         name = request.form['name']
         email = request.form['email']
         department = request.form['department']
@@ -31,7 +32,8 @@ def index():
         # Check for conflicts
         for booking in bookings:
             if (
-                booking['date'] == date and
+                booking['from_date'] == from_date and
+                booking['to_date'] == to_date and
                 booking['room_type'] == room_type and
                 not (end_time <= booking['start_time'] or start_time >= booking['end_time'])
             ):
@@ -40,7 +42,8 @@ def index():
 
         # Save booking
         bookings.append({
-            'date': date,
+            'from_date': from_date,
+            'to_date': to_date,
             'name': name,
             'email': email,
             'department': department,
@@ -52,7 +55,7 @@ def index():
         })
         return redirect(url_for('index'))
 
-    # ✅ Handle date filtering (from_date / to_date)
+    # ✅ Handle date filtering (via query string)
     from_date = request.args.get('from_date')
     to_date = request.args.get('to_date')
     if from_date and to_date:
@@ -61,7 +64,7 @@ def index():
             to_dt = datetime.strptime(to_date, "%Y-%m-%d")
             filtered_bookings = [
                 b for b in bookings
-                if from_dt <= datetime.strptime(b['date'], "%Y-%m-%d") <= to_dt
+                if from_dt <= datetime.strptime(b['from_date'], "%Y-%m-%d") <= to_dt
             ]
         except Exception as e:
             print("Date filter error:", e)
@@ -84,10 +87,11 @@ def cancel_booking(index):
 def download_csv():
     si = StringIO()
     writer = csv.writer(si)
-    writer.writerow(['Date', 'Name', 'Email', 'Department', 'Attendees', 'Room Type', 'Start', 'End', 'Details'])
+    writer.writerow(['From Date', 'To Date', 'Name', 'Email', 'Department', 'Attendees', 'Room Type', 'Start', 'End', 'Details'])
     for booking in bookings:
         writer.writerow([
-            booking['date'],
+            booking['from_date'],
+            booking['to_date'],
             booking['name'],
             booking['email'],
             booking['department'],
