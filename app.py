@@ -1,54 +1,85 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for
+import csv
 import os
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"
 
-# ✅ Define your admin email once
-ADMIN_EMAIL = "your_admin_email@example.com"
+BOOKINGS_FILE = "bookings.csv"
 
-# ✅ Context processor: injects admin_email into ALL templates
-@app.context_processor
-def inject_admin_email():
-    return dict(admin_email=ADMIN_EMAIL)
 
-# -------------------------
-# Routes
-# -------------------------
+def read_bookings():
+    bookings = []
+    if os.path.exists(BOOKINGS_FILE):
+        with open(BOOKINGS_FILE, mode="r", newline="") as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                bookings.append(row)
+    return bookings
 
-@app.route("/")
-def home():
-    bookings = []  # TODO: replace with actual booking list (from DB or file)
+
+def write_booking(data):
+    file_exists = os.path.exists(BOOKINGS_FILE)
+    with open(BOOKINGS_FILE, mode="a", newline="") as file:
+        fieldnames = ["name", "email", "phone", "date", "time", "purpose"]
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(data)
+
+
+@app.route("/", methods=["GET", "POST"])
+def index():
     error = None
-    return render_template("index.html", bookings=bookings, error=error)
+    bookings = read_bookings()
 
-@app.route("/filter")
-def filter_bookings():
-    query = request.args.get("q", "")
-    # TODO: replace with actual filtering logic
-    bookings = []  
-    error = None if bookings else "No results found"
-    return render_template("index.html", bookings=bookings, error=error)
-
-@app.route("/add", methods=["GET", "POST"])
-def add_booking():
     if request.method == "POST":
-        # Example form handling (replace with DB/file logic)
         name = request.form.get("name")
+        email = request.form.get("email")
+        phone = request.form.get("phone")
         date = request.form.get("date")
-        flash(f"Booking added for {name} on {date}", "success")
-        return redirect(url_for("home"))
-    return render_template("add_booking.html")
+        time = request.form.get("time")
+        purpose = request.form.get("purpose")
 
-@app.route("/delete/<int:booking_id>")
-def delete_booking(booking_id):
-    # TODO: implement delete logic
-    flash(f"Booking {booking_id} deleted.", "warning")
-    return redirect(url_for("home"))
+        if not name or not email or not phone or not date or not time or not purpose:
+            error = "All fields are required."
+        else:
+            write_booking(
+                {
+                    "name": name,
+                    "email": email,
+                    "phone": phone,
+                    "date": date,
+                    "time": time,
+                    "purpose": purpose,
+                }
+            )
+            return redirect(url_for("index"))
 
-# -------------------------
-# Run app
-# -------------------------
+    return render_template("index.html", bookings=bookings, error=error)
+
+
+@app.route("/search", methods=["GET", "POST"])
+def search():
+    error = None
+    bookings = read_bookings()
+
+    if request.method == "POST":
+        query = request.form.get("query")
+        if not query:
+            error = "Please enter a search term."
+        else:
+            filtered_bookings = [
+                b
+                for b in bookings
+                if query.lower() in b["name"].lower()
+                or query.lower() in b["email"].lower()
+                or query.lower() in b["phone"].lower()
+            ]
+            return render_template("index.html", bookings=filtered_bookings, error=error)
+
+    return render_template("index.html", bookings=bookings, error=error)
+
+
 if __name__ == "__main__":
-    # Set host to 0.0.0.0 for deployment (e.g., Render, Heroku)
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    app.run(debug=True)
