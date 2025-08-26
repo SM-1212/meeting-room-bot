@@ -1,85 +1,55 @@
-from flask import Flask, render_template, request, redirect, url_for
-import csv
+from flask import Flask, request, jsonify, render_template
 import os
 
 app = Flask(__name__)
 
-BOOKINGS_FILE = "bookings.csv"
+# In-memory storage for meeting room bookings (you can later replace with DB if needed)
+bookings = []
+
+@app.route("/")
+def home():
+    return render_template("index.html")  # Make sure you have a templates/index.html
+
+@app.route("/book", methods=["POST"])
+def book_meeting():
+    try:
+        data = request.get_json()
+        room = data.get("room")
+        date = data.get("date")
+        start_time = data.get("start_time")
+        end_time = data.get("end_time")
+        booked_by = data.get("booked_by")
+
+        # Validation
+        if not all([room, date, start_time, end_time, booked_by]):
+            return jsonify({"error": "Missing required fields"}), 400
+
+        # Check for conflicts
+        for b in bookings:
+            if b["room"] == room and b["date"] == date:
+                if not (end_time <= b["start_time"] or start_time >= b["end_time"]):
+                    return jsonify({"error": "Room already booked for this slot"}), 400
+
+        booking = {
+            "room": room,
+            "date": date,
+            "start_time": start_time,
+            "end_time": end_time,
+            "booked_by": booked_by
+        }
+        bookings.append(booking)
+
+        return jsonify({"message": "Room booked successfully!", "booking": booking})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
-def read_bookings():
-    bookings = []
-    if os.path.exists(BOOKINGS_FILE):
-        with open(BOOKINGS_FILE, mode="r", newline="") as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                bookings.append(row)
-    return bookings
-
-
-def write_booking(data):
-    file_exists = os.path.exists(BOOKINGS_FILE)
-    with open(BOOKINGS_FILE, mode="a", newline="") as file:
-        fieldnames = ["name", "email", "phone", "date", "time", "purpose"]
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-
-        if not file_exists:
-            writer.writeheader()
-        writer.writerow(data)
-
-
-@app.route("/", methods=["GET", "POST"])
-def index():
-    error = None
-    bookings = read_bookings()
-
-    if request.method == "POST":
-        name = request.form.get("name")
-        email = request.form.get("email")
-        phone = request.form.get("phone")
-        date = request.form.get("date")
-        time = request.form.get("time")
-        purpose = request.form.get("purpose")
-
-        if not name or not email or not phone or not date or not time or not purpose:
-            error = "All fields are required."
-        else:
-            write_booking(
-                {
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                    "date": date,
-                    "time": time,
-                    "purpose": purpose,
-                }
-            )
-            return redirect(url_for("index"))
-
-    return render_template("index.html", bookings=bookings, error=error)
-
-
-@app.route("/search", methods=["GET", "POST"])
-def search():
-    error = None
-    bookings = read_bookings()
-
-    if request.method == "POST":
-        query = request.form.get("query")
-        if not query:
-            error = "Please enter a search term."
-        else:
-            filtered_bookings = [
-                b
-                for b in bookings
-                if query.lower() in b["name"].lower()
-                or query.lower() in b["email"].lower()
-                or query.lower() in b["phone"].lower()
-            ]
-            return render_template("index.html", bookings=filtered_bookings, error=error)
-
-    return render_template("index.html", bookings=bookings, error=error)
+@app.route("/bookings", methods=["GET"])
+def get_bookings():
+    return jsonify(bookings)
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))  # Render uses dynamic PORT
+    app.run(host="0.0.0.0", port=port, debug=True)
