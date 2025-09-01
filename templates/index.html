@@ -103,28 +103,31 @@
         </tr>
       </thead>
       <tbody>
-        {% for booking in bookings %}
-        <tr>
-          <td>{{ booking.from_date }}</td>
-          <td>{{ booking.to_date }}</td>
-          <td>{{ booking.name }}</td>
-          <td>{{ booking.email }}</td>
-          <td>{{ booking.department }}</td>
-          <td>{{ booking.attendees }}</td>
-          <td>{{ booking.room_type }}</td>
-          <td>{{ booking.start_time }}</td>
-          <td>{{ booking.end_time }}</td>
-          <td>{{ booking.details }}</td>
-          {% if is_admin %}
-          <td>
-            <form action="/cancel/{{ loop.index0 }}" method="POST" style="display:inline;">
-              <button type="submit" class="btn btn-danger">Cancel</button>
-            </form>
-          </td>
-          {% endif %}
-        </tr>
-        {% endfor %}
-      </tbody>
+  {% for booking in bookings %}
+  <tr>
+    <td>{{ booking.date }}</td>
+    <td>{{ booking.to_date }}</td>
+    <td>{{ booking.name }}</td>
+    <td>{{ booking.email }}</td>
+    <td>{{ booking.department }}</td>
+    <td>{{ booking.attendees }}</td>
+    <td>{{ booking.room_type }}</td>
+    <td>{{ booking.start_time }}</td>
+    <td>{{ booking.end_time }}</td>
+    <td>{{ booking.details }}</td>
+
+    <!-- ✅ Cancel button always visible to Admin -->
+    {% if admin_email %}
+    <td>
+      <form action="{{ url_for('cancel_booking', index=loop.index0) }}" method="post">
+        <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
+      </form>
+    </td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+</tbody>
+
     </table>
     {% else %}
       <p class="text-center">No bookings yet.</p>

@@ -124,3 +124,13 @@ if __name__ == "__main__":
     # Works locally and on Render
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+@app.route('/cancel/<int:index>', methods=['POST'])
+def cancel_booking(index):
+    email = request.form.get("email")
+    if email == ADMIN_EMAIL:  # ✅ Only Admin can cancel
+        if 0 <= index < len(bookings):
+            bookings.pop(index)
+    else:
+        return "Unauthorized: Only Admin can cancel bookings", 403
+    return redirect(url_for('index'))
+return render_template("index.html", bookings=bookings, error=error, admin_email=ADMIN_EMAIL)
