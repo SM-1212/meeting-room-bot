@@ -97,7 +97,9 @@
           <th>Start</th>
           <th>End</th>
           <th>Details</th>
-          {% if admin_email %}<th>Action</th>{% endif %}
+          {% if is_admin %}
+            <th>Action</th>
+          {% endif %}
         </tr>
       </thead>
       <tbody>
@@ -114,10 +116,9 @@
           <td>{{ booking.end_time }}</td>
           <td>{{ booking.details }}</td>
 
-          <!-- Cancel button visible only if admin_email matches -->
-          {% if booking.email == admin_email %}
+          {% if is_admin %}
           <td>
-            <form action="{{ url_for('delete_booking', booking_id=loop.index0) }}" method="get">
+            <form action="{{ url_for('delete_booking', booking_id=booking.id) }}" method="post">
               <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
             </form>
           </td>
