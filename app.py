@@ -1,92 +1,43 @@
-from flask import Flask, render_template, request, redirect, url_for
-import json
+from flask import Flask, render_template, request, redirect, url_for, flash
 import os
-from datetime import datetime
 
 app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "defaultsecret")
 
-BOOKING_FILE = "bookings.json"
-ADMIN_EMAIL = "admin@example.com"  # Change this to your real admin email
-
-
-def load_bookings():
-    if os.path.exists(BOOKING_FILE):
-        with open(BOOKING_FILE, "r") as f:
-            return json.load(f)
-    return []
+# Replace with your real admin email
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@example.com")
 
 
-def save_bookings(bookings):
-    with open(BOOKING_FILE, "w") as f:
-        json.dump(bookings, f, indent=4)
+# Dummy function for bookings (replace with DB call or your logic)
+def get_all_bookings():
+    return [
+        {"room": "Meeting Room 1", "time": "10:00 - 11:00"},
+        {"room": "Meeting Room 2", "time": "11:30 - 12:30"},
+    ]
 
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/")
 def index():
-    error = None
-    bookings = load_bookings()
-
-    if request.method == "POST":
-        name = request.form.get("name")
-        email = request.form.get("email")
-        date = request.form.get("date")
-        start_time = request.form.get("start_time")
-        end_time = request.form.get("end_time")
-
-        # Validate required fields
-        if not (name and email and date and start_time and end_time):
-            error = "All fields are required."
-        else:
-            # Convert to datetime for validation
-            new_start = datetime.strptime(f"{date} {start_time}", "%Y-%m-%d %H:%M")
-            new_end = datetime.strptime(f"{date} {end_time}", "%Y-%m-%d %H:%M")
-
-            # Check for overlap
-            overlap = False
-            for booking in bookings:
-                if booking["date"] == date:
-                    existing_start = datetime.strptime(
-                        f"{booking['date']} {booking['start_time']}", "%Y-%m-%d %H:%M"
-                    )
-                    existing_end = datetime.strptime(
-                        f"{booking['date']} {booking['end_time']}", "%Y-%m-%d %H:%M"
-                    )
-                    if new_start < existing_end and new_end > existing_start:
-                        overlap = True
-                        break
-
-            if overlap:
-                error = "This time slot is already booked."
-            else:
-                bookings.append(
-                    {
-                        "name": name,
-                        "email": email,
-                        "date": date,
-                        "start_time": start_time,
-                        "end_time": end_time,
-                    }
-                )
-                save_bookings(bookings)
-                return redirect(url_for("index"))
-
-    # Pass admin email to template
-    return render_template(
-        "index.html", bookings=bookings, error=error, admin_email=ADMIN_EMAIL
-    )
+    bookings = get_all_bookings()
+    error = None  # ✅ ensure error is always defined
+    return render_template("index.html", bookings=bookings, error=error, admin_email=ADMIN_EMAIL)
 
 
-@app.route("/cancel/<int:booking_id>", methods=["POST"])
-def cancel_booking(booking_id):
-    bookings = load_bookings()
-    if 0 <= booking_id < len(bookings):
-        bookings.pop(booking_id)
-        save_bookings(bookings)
-    return redirect(url_for("index"))
+@app.route("/book", methods=["POST"])
+def book_room():
+    try:
+        room = request.form["room"]
+        time = request.form["time"]
 
+        # Your booking logic here
+        flash(f"Room {room} booked for {time}", "success")
+        return redirect(url_for("index"))
 
-import os
+    except Exception as e:
+        error = str(e)
+        bookings = get_all_bookings()
+        return render_template("index.html", bookings=bookings, error=error, admin_email=ADMIN_EMAIL)
+
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=5000)
