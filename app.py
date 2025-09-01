@@ -1,43 +1,52 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
-import os
+from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "defaultsecret")
 
-# Replace with your real admin email
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@example.com")
-
-
-# Dummy function for bookings (replace with DB call or your logic)
-def get_all_bookings():
-    return [
-        {"room": "Meeting Room 1", "time": "10:00 - 11:00"},
-        {"room": "Meeting Room 2", "time": "11:30 - 12:30"},
-    ]
+# Example data store (in-memory, replace with DB if needed)
+bookings = []
+ADMIN_EMAIL = "admin@example.com"  # change this to your actual admin email
 
 
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def index():
-    bookings = get_all_bookings()
-    error = None  # ✅ ensure error is always defined
-    return render_template("index.html", bookings=bookings, error=error, admin_email=ADMIN_EMAIL)
+    error = None
+
+    if request.method == "POST":
+        name = request.form.get("name")
+        room = request.form.get("room")
+        date = request.form.get("date")
+        time = request.form.get("time")
+
+        if not name or not room or not date or not time:
+            error = "All fields are required!"
+        else:
+            bookings.append({
+                "name": name,
+                "room": room,
+                "date": date,
+                "time": time
+            })
+            return redirect(url_for("index"))
+
+    return render_template(
+        "index.html",
+        bookings=bookings,
+        error=error,
+        admin_email=ADMIN_EMAIL
+    )
 
 
-@app.route("/book", methods=["POST"])
-def book_room():
-    try:
-        room = request.form["room"]
-        time = request.form["time"]
+@app.route("/delete/<int:booking_id>")
+def delete_booking(booking_id):
+    if 0 <= booking_id < len(bookings):
+        bookings.pop(booking_id)
+    return redirect(url_for("index"))
 
-        # Your booking logic here
-        flash(f"Room {room} booked for {time}", "success")
-        return redirect(url_for("index"))
 
-    except Exception as e:
-        error = str(e)
-        bookings = get_all_bookings()
-        return render_template("index.html", bookings=bookings, error=error, admin_email=ADMIN_EMAIL)
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("404.html"), 404
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)
