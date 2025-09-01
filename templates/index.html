@@ -17,7 +17,6 @@
 </head>
 <body>
   <div class="container">
-    <!-- ✅ Only valid logo retained -->
     <img src="{{ url_for('static', filename='globe_logo.png') }}" alt="Globe Teleservices Logo" class="logo">
     <h2>Meeting Room Booking</h2>
 
@@ -25,6 +24,7 @@
       <div class="alert alert-danger">{{ error }}</div>
     {% endif %}
 
+    <!-- Booking Form -->
     <form method="POST">
       <div class="row">
         <div class="col-md-4">
@@ -97,67 +97,24 @@
           <th>Start</th>
           <th>End</th>
           <th>Details</th>
-          {% if is_admin %}
-            <th>Action</th>
-          {% endif %}
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
-  {% for booking in bookings %}
-  <tr>
-    <td>{{ booking.date }}</td>
-    <td>{{ booking.to_date }}</td>
-    <td>{{ booking.name }}</td>
-    <td>{{ booking.email }}</td>
-    <td>{{ booking.department }}</td>
-    <td>{{ booking.attendees }}</td>
-    <td>{{ booking.room_type }}</td>
-    <td>{{ booking.start_time }}</td>
-    <td>{{ booking.end_time }}</td>
-    <td>{{ booking.details }}</td>
+        {% for booking in bookings %}
+        <tr>
+          <td>{{ booking.date }}</td>
+          <td>{{ booking.to_date }}</td>
+          <td>{{ booking.name }}</td>
+          <td>{{ booking.email }}</td>
+          <td>{{ booking.department }}</td>
+          <td>{{ booking.attendees }}</td>
+          <td>{{ booking.room_type }}</td>
+          <td>{{ booking.start_time }}</td>
+          <td>{{ booking.end_time }}</td>
+          <td>{{ booking.details }}</td>
 
-    <!-- ✅ Cancel button always visible to Admin -->
-    {% if admin_email %}
-    <td>
-      <form action="{{ url_for('cancel_booking', index=loop.index0) }}" method="post">
-        <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
-      </form>
-    </td>
-    {% endif %}
-  </tr>
-  {% endfor %}
-</tbody>
-
-    </table>
-    {% else %}
-      <p class="text-center">No bookings yet.</p>
-    {% endif %}
-  </div>
-</body>
-</html>
-<tbody>
-  {% for booking in bookings %}
-  <tr>
-    <td>{{ booking.date }}</td>
-    <td>{{ booking.to_date }}</td>
-    <td>{{ booking.name }}</td>
-    <td>{{ booking.email }}</td>
-    <td>{{ booking.department }}</td>
-    <td>{{ booking.attendees }}</td>
-    <td>{{ booking.room_type }}</td>
-    <td>{{ booking.start_time }}</td>
-    <td>{{ booking.end_time }}</td>
-    <td>{{ booking.details }}</td>
-
-    <!-- ✅ Cancel button only for Admin -->
-    {% if booking.email == admin_email %}
-    <td>
-      <form action="{{ url_for('cancel_booking', index=loop.index0) }}" method="post">
-        <input type="hidden" name="email" value="{{ booking.email }}">
-        <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
-      </form>
-    </td>
-    {% endif %}
-  </tr>
-  {% endfor %}
-</tbody>
+          <!-- ✅ Cancel button only if booking email matches admin -->
+          {% if booking.email == admin_email %}
+          <td>
+            <form action="{{ url_for('cancel_booking', index=loo
