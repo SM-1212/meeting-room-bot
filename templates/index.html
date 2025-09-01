@@ -132,3 +132,29 @@
   </div>
 </body>
 </html>
+<tbody>
+  {% for booking in bookings %}
+  <tr>
+    <td>{{ booking.date }}</td>
+    <td>{{ booking.to_date }}</td>
+    <td>{{ booking.name }}</td>
+    <td>{{ booking.email }}</td>
+    <td>{{ booking.department }}</td>
+    <td>{{ booking.attendees }}</td>
+    <td>{{ booking.room_type }}</td>
+    <td>{{ booking.start_time }}</td>
+    <td>{{ booking.end_time }}</td>
+    <td>{{ booking.details }}</td>
+
+    <!-- ✅ Cancel button only for Admin -->
+    {% if booking.email == admin_email %}
+    <td>
+      <form action="{{ url_for('cancel_booking', index=loop.index0) }}" method="post">
+        <input type="hidden" name="email" value="{{ booking.email }}">
+        <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
+      </form>
+    </td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+</tbody>
