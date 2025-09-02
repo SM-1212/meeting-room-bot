@@ -65,10 +65,11 @@ def delete_booking_db(booking_id):
 # -----------------------------
 # Routes
 # -----------------------------
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET", "POST", "HEAD"])
 def index():
-    error = None
-    success = None
+    if request.method == "HEAD":
+        return "", 200  # Return empty response for HEAD requests
+    return render_template("index.html")
 
     if request.method == "POST":
         try:
