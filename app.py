@@ -1,136 +1,114 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file
-import csv
+from flask import Flask, render_template, request, redirect, url_for, flash
+import sqlite3
 import os
-from datetime import datetime
 
+# -----------------------------
+# Flask App Initialization
+# -----------------------------
 app = Flask(__name__)
+app.secret_key = "your_secret_key"  # Needed for flash messages
 
-# Store bookings in memory (for production, use a DB)
-bookings = []
-ADMIN_EMAIL = "saugat.mukherjee@globeteleservices.com"
+# -----------------------------
+# Config
+# -----------------------------
+DATABASE = "bookings.db"
 
-# ---------- Home ----------
+# -----------------------------
+# DB Helper Functions
+# -----------------------------
+def init_db():
+    """Create database if not exists"""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS bookings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                department TEXT NOT NULL,
+                attendees INTEGER NOT NULL,
+                room_type TEXT NOT NULL,
+                date TEXT NOT NULL,
+                to_date TEXT NOT NULL,
+                start_time TEXT NOT NULL,
+                end_time TEXT NOT NULL,
+                details TEXT
+            )
+        """)
+        conn.commit()
+
+def get_all_bookings():
+    """Fetch all bookings"""
+    with sqlite3.connect(DATABASE) as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM bookings ORDER BY date, start_time")
+        return cursor.fetchall()
+
+def add_booking(data):
+    """Insert new booking"""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO bookings (name, email, department, attendees, room_type, date, to_date, start_time, end_time, details)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, data)
+        conn.commit()
+
+def delete_booking_db(booking_id):
+    """Delete booking by ID"""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM bookings WHERE id = ?", (booking_id,))
+        conn.commit()
+
+# -----------------------------
+# Routes
+# -----------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
     error = None
+    success = None
+
     if request.method == "POST":
-        from_date = request.form["from_date"]
-        to_date = request.form["to_date"]
-        name = request.form["name"]
-        email = request.form["email"]
-        department = request.form["department"]
-        attendees = request.form["attendees"]
-        room_type = request.form["room_type"]
-        start_time = request.form["start_time"]
-        end_time = request.form["end_time"]
-        details = request.form["details"]
+        try:
+            from_date = request.form["from_date"]
+            to_date = request.form["to_date"]
+            name = request.form["name"]
+            email = request.form["email"]
+            department = request.form["department"]
+            attendees = request.form["attendees"]
+            room_type = request.form["room_type"]
+            start_time = request.form["start_time"]
+            end_time = request.form["end_time"]
+            details = request.form.get("details", "")
 
-        # ✅ Conflict check: same room, overlapping time
-        for booking in bookings:
-            if (
-                booking["room_type"] == room_type
-                and booking["date"] == from_date
-                and not (end_time <= booking["start_time"] or start_time >= booking["end_time"])
-            ):
-                error = f"{room_type} is already booked during this time!"
-               return render_template("index.html", bookings=bookings, error=error, admin_email=ADMIN_EMAIL)
+            if not (from_date and to_date and name and email and department and attendees and room_type and start_time and end_time):
+                error = "All required fields must be filled."
+            else:
+                add_booking((name, email, department, attendees, room_type, from_date, to_date, start_time, end_time, details))
+                success = "Booking successful!"
+                return redirect(url_for("index"))
 
+        except Exception as e:
+            error = f"Error: {str(e)}"
 
-        # ✅ Save booking
-        bookings.append(
-            {
-                "date": from_date,
-                "to_date": to_date,
-                "name": name,
-                "email": email,
-                "department": department,
-                "attendees": attendees,
-                "room_type": room_type,
-                "start_time": start_time,
-                "end_time": end_time,
-                "details": details,
-            }
-        )
-        return redirect(url_for("index"))
+    bookings = get_all_bookings()
+    return render_template("index.html", bookings=bookings, error=error, success=success)
 
-    return render_template(
-        "index.html",
-        bookings=bookings,
-        error=error,
-        admin_email=ADMIN_EMAIL,
-        is_admin=True,
-    )
-
-
-# ---------- Cancel Booking ----------
-@app.route("/cancel/<int:index>", methods=["POST"])
-def cancel_booking(index):
-    if 0 <= index < len(bookings):
-        bookings.pop(index)
+@app.route("/delete/<int:booking_id>", methods=["POST"])
+def delete_booking(booking_id):
+    try:
+        delete_booking_db(booking_id)
+        flash("Booking cancelled successfully!", "success")
+    except Exception as e:
+        flash(f"Error cancelling booking: {str(e)}", "danger")
     return redirect(url_for("index"))
 
-
-# ---------- Download CSV ----------
-@app.route("/download")
-def download_csv():
-    filename = "bookings.csv"
-    with open(filename, "w", newline="") as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(
-            [
-                "From Date",
-                "To Date",
-                "Name",
-                "Email",
-                "Department",
-                "Attendees",
-                "Room Type",
-                "Start Time",
-                "End Time",
-                "Details",
-            ]
-        )
-        for b in bookings:
-            writer.writerow(
-                [
-                    b["date"],
-                    b["to_date"],
-                    b["name"],
-                    b["email"],
-                    b["department"],
-                    b["attendees"],
-                    b["room_type"],
-                    b["start_time"],
-                    b["end_time"],
-                    b["details"],
-                ]
-            )
-    return send_file(filename, as_attachment=True)
-
-
+# -----------------------------
+# Start App
+# -----------------------------
 if __name__ == "__main__":
+    if not os.path.exists(DATABASE):
+        init_db()
     app.run(debug=True)
-@app.route("/cancel/<booking_id>", methods=["POST"])
-def cancel_booking(booking_id):
-    global bookings
-    booking_to_cancel = next((b for b in bookings if b["id"] == booking_id), None)
-
-    if booking_to_cancel:
-        bookings.remove(booking_to_cancel)
-        success = "Booking cancelled successfully."
-        return render_template(
-            "index.html",
-            bookings=bookings,
-            error=None,
-            success=success,
-            admin_email=ADMIN_EMAIL
-        )
-    else:
-        error = "Booking not found."
-        return render_template(
-            "index.html",
-            bookings=bookings,
-            error=error,
-            success=None,
-            admin_email=ADMIN_EMAIL
-        )

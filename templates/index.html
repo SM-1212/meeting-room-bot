@@ -23,6 +23,16 @@
     {% if error %}
       <div class="alert alert-danger">{{ error }}</div>
     {% endif %}
+    {% if success %}
+      <div class="alert alert-success">{{ success }}</div>
+    {% endif %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
 
     <!-- Booking Form -->
     <form method="POST">
@@ -97,9 +107,7 @@
           <th>Start</th>
           <th>End</th>
           <th>Details</th>
-          {% if is_admin %}
-            <th>Action</th>
-          {% endif %}
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
@@ -115,14 +123,11 @@
           <td>{{ booking.start_time }}</td>
           <td>{{ booking.end_time }}</td>
           <td>{{ booking.details }}</td>
-
-          {% if is_admin %}
           <td>
             <form action="{{ url_for('delete_booking', booking_id=booking.id) }}" method="post">
               <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
             </form>
           </td>
-          {% endif %}
         </tr>
         {% endfor %}
       </tbody>
@@ -133,12 +138,3 @@
   </div>
 </body>
 </html>
-<form action="{{ url_for('cancel_booking', index=loop.index0) }}" method="post">
-  <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
-</form>
-{% if error %}
-    <div style="color: red;">{{ error }}</div>
-{% endif %}
-{% if success %}
-    <div style="color: green;">{{ success }}</div>
-{% endif %}
