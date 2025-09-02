@@ -136,3 +136,9 @@
 <form action="{{ url_for('cancel_booking', index=loop.index0) }}" method="post">
   <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
 </form>
+{% if error %}
+    <div style="color: red;">{{ error }}</div>
+{% endif %}
+{% if success %}
+    <div style="color: green;">{{ success }}</div>
+{% endif %}

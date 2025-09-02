@@ -110,3 +110,27 @@ def download_csv():
 
 if __name__ == "__main__":
     app.run(debug=True)
+@app.route("/cancel/<booking_id>", methods=["POST"])
+def cancel_booking(booking_id):
+    global bookings
+    booking_to_cancel = next((b for b in bookings if b["id"] == booking_id), None)
+
+    if booking_to_cancel:
+        bookings.remove(booking_to_cancel)
+        success = "Booking cancelled successfully."
+        return render_template(
+            "index.html",
+            bookings=bookings,
+            error=None,
+            success=success,
+            admin_email=ADMIN_EMAIL
+        )
+    else:
+        error = "Booking not found."
+        return render_template(
+            "index.html",
+            bookings=bookings,
+            error=error,
+            success=None,
+            admin_email=ADMIN_EMAIL
+        )
