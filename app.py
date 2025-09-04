@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, redirect, url_for, flash, Res
 import sqlite3
 import os
 import csv
-import io
 
 # -----------------------------
 # Flask App Initialization
@@ -52,7 +51,8 @@ def add_booking(data):
     with sqlite3.connect(DATABASE) as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO bookings (name, email, department, attendees, room_type, date, to_date, start_time, end_time, details)
+            INSERT INTO bookings 
+            (name, email, department, attendees, room_type, date, to_date, start_time, end_time, details)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, data)
         conn.commit()
@@ -67,8 +67,11 @@ def delete_booking_db(booking_id):
 # -----------------------------
 # Routes
 # -----------------------------
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET", "POST", "HEAD"])
 def index():
+    if request.method == "HEAD":
+        return "", 200  # Handle HEAD requests safely
+
     error = None
     success = None
 
@@ -88,53 +91,14 @@ def index():
             if not (from_date and to_date and name and email and department and attendees and room_type and start_time and end_time):
                 error = "All required fields must be filled."
             else:
-                add_booking((name, email, department, attendees, room_type, from_date, to_date, start_time, end_time, details))
+                add_booking(
+                    (name, email, department, attendees, room_type,
+                     from_date, to_date, start_time, end_time, details)
+                )
                 flash("Booking successful!", "success")
                 return redirect(url_for("index"))
-
         except Exception as e:
             error = f"Error: {str(e)}"
-            flash(error, "danger")
 
     bookings = get_all_bookings()
-    return render_template("index.html", bookings=bookings, error=error, success=success)
-
-
-@app.route("/delete/<int:booking_id>", methods=["POST"])
-def delete_booking(booking_id):
-    try:
-        delete_booking_db(booking_id)
-        flash("Booking cancelled successfully!", "success")
-    except Exception as e:
-        flash(f"Error cancelling booking: {str(e)}", "danger")
-    return redirect(url_for("index"))
-
-
-@app.route("/download_csv")
-def download_csv():
-    """Download all bookings as CSV"""
-    bookings = get_all_bookings()
-
-    # Create CSV in memory
-    output = io.StringIO()
-    writer = csv.writer(output)
-
-    # Write header
-    writer.writerow(["From Date", "To Date", "Name", "Email", "Department", "Attendees", "Room Type", "Start Time", "End Time", "Details"])
-
-    # Write rows
-    for b in bookings:
-        writer.writerow([b["date"], b["to_date"], b["name"], b["email"], b["department"], b["attendees"], b["room_type"], b["start_time"], b["end_time"], b["details"]])
-
-    output.seek(0)
-
-    return Response(output, mimetype="text/csv", headers={"Content-Disposition": "attachment;filename=bookings.csv"})
-
-
-# -----------------------------
-# Start App
-# -----------------------------
-if __name__ == "__main__":
-    if not os.path.exists(DATABASE):
-        init_db()
-    app.run(debug=True)
+    return render_template("index.html", bookings=book
