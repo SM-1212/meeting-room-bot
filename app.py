@@ -1,6 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, Response
 import sqlite3
 import os
+import csv
+import io
 
 # -----------------------------
 # Flask App Initialization
@@ -65,11 +67,10 @@ def delete_booking_db(booking_id):
 # -----------------------------
 # Routes
 # -----------------------------
-@app.route("/", methods=["GET", "POST", "HEAD"])
+@app.route("/", methods=["GET", "POST"])
 def index():
-    if request.method == "HEAD":
-        return "", 200  # Return empty response for HEAD requests
-    return render_template("index.html")
+    error = None
+    success = None
 
     if request.method == "POST":
         try:
@@ -88,14 +89,16 @@ def index():
                 error = "All required fields must be filled."
             else:
                 add_booking((name, email, department, attendees, room_type, from_date, to_date, start_time, end_time, details))
-                success = "Booking successful!"
+                flash("Booking successful!", "success")
                 return redirect(url_for("index"))
 
         except Exception as e:
             error = f"Error: {str(e)}"
+            flash(error, "danger")
 
     bookings = get_all_bookings()
     return render_template("index.html", bookings=bookings, error=error, success=success)
+
 
 @app.route("/delete/<int:booking_id>", methods=["POST"])
 def delete_booking(booking_id):
@@ -105,6 +108,28 @@ def delete_booking(booking_id):
     except Exception as e:
         flash(f"Error cancelling booking: {str(e)}", "danger")
     return redirect(url_for("index"))
+
+
+@app.route("/download_csv")
+def download_csv():
+    """Download all bookings as CSV"""
+    bookings = get_all_bookings()
+
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Write header
+    writer.writerow(["From Date", "To Date", "Name", "Email", "Department", "Attendees", "Room Type", "Start Time", "End Time", "Details"])
+
+    # Write rows
+    for b in bookings:
+        writer.writerow([b["date"], b["to_date"], b["name"], b["email"], b["department"], b["attendees"], b["room_type"], b["start_time"], b["end_time"], b["details"]])
+
+    output.seek(0)
+
+    return Response(output, mimetype="text/csv", headers={"Content-Disposition": "attachment;filename=bookings.csv"})
+
 
 # -----------------------------
 # Start App

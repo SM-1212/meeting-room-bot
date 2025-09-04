@@ -6,11 +6,11 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body { background-color: #eaf6fb; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .container { margin-top: 40px; }
+    .container { margin-top: 40px; max-width: 1100px; }
     .logo { display: block; margin-left: auto; margin-right: auto; height: 100px; }
     h2 { text-align: center; font-weight: 700; margin-top: 20px; margin-bottom: 30px; color: #2b3e50; }
     .table th { background-color: #0077b6; color: white; }
-    .btn-danger { padding: 2px 8px; font-size: 14px; }
+    .btn-danger.btn-sm { padding: 2px 8px; font-size: 14px; }
     .form-label { margin-top: 10px; font-weight: 600; }
     .form-select, .form-control { margin-bottom: 10px; }
   </style>
@@ -20,16 +20,14 @@
     <img src="{{ url_for('static', filename='globe_logo.png') }}" alt="Globe Teleservices Logo" class="logo">
     <h2>Meeting Room Booking</h2>
 
-    {% if error %}
-      <div class="alert alert-danger">{{ error }}</div>
-    {% endif %}
-    {% if success %}
-      <div class="alert alert-success">{{ success }}</div>
-    {% endif %}
+    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert-{{ category }}">{{ message }}</div>
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
         {% endfor %}
       {% endif %}
     {% endwith %}
@@ -49,6 +47,7 @@
           <label class="form-label">Name of Booking Person:</label>
           <input type="text" name="name" class="form-control" required>
         </div>
+
         <div class="col-md-4">
           <label class="form-label">Email ID:</label>
           <input type="email" name="email" class="form-control" required>
@@ -59,8 +58,9 @@
         </div>
         <div class="col-md-4">
           <label class="form-label">No. of Attendees:</label>
-          <input type="number" name="attendees" class="form-control" required>
+          <input type="number" name="attendees" class="form-control" min="1" required>
         </div>
+
         <div class="col-md-4">
           <label class="form-label">Meeting Room Type:</label>
           <select name="room_type" class="form-select" required>
@@ -78,63 +78,69 @@
           <label class="form-label">End Time:</label>
           <input type="time" name="end_time" class="form-control" required>
         </div>
-        <div class="col-md-4">
+
+        <div class="col-md-12">
           <label class="form-label">Meeting Details:</label>
-          <input type="text" name="details" class="form-control">
+          <input type="text" name="details" class="form-control" placeholder="Agenda / additional info (optional)">
         </div>
       </div>
-      <br>
-      <div class="text-center">
+
+      <div class="text-center mt-3">
         <button type="submit" class="btn btn-primary">Book Meeting Room</button>
-        <a href="/download" class="btn btn-success">Download CSV</a>
       </div>
     </form>
 
-    <br><hr><br>
-    <h4 class="text-center">Bookings Made</h4>
+    <hr class="my-4">
+
+    <div class="d-flex justify-content-between align-items-center">
+      <h4 class="mb-0">Bookings Made</h4>
+      <a href="{{ url_for('download_csv') }}" class="btn btn-success btn-sm">Download CSV</a>
+    </div>
 
     {% if bookings %}
-    <table class="table table-bordered table-striped">
-      <thead>
-        <tr>
-          <th>From</th>
-          <th>To</th>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Department</th>
-          <th>Attendees</th>
-          <th>Room Type</th>
-          <th>Start</th>
-          <th>End</th>
-          <th>Details</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for booking in bookings %}
-        <tr>
-          <td>{{ booking.date }}</td>
-          <td>{{ booking.to_date }}</td>
-          <td>{{ booking.name }}</td>
-          <td>{{ booking.email }}</td>
-          <td>{{ booking.department }}</td>
-          <td>{{ booking.attendees }}</td>
-          <td>{{ booking.room_type }}</td>
-          <td>{{ booking.start_time }}</td>
-          <td>{{ booking.end_time }}</td>
-          <td>{{ booking.details }}</td>
-          <td>
-            <form action="{{ url_for('delete_booking', booking_id=booking.id) }}" method="post">
-              <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+      <table class="table table-bordered table-striped mt-3">
+        <thead>
+          <tr>
+            <th>From</th>
+            <th>To</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Department</th>
+            <th>Attendees</th>
+            <th>Room Type</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Details</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for booking in bookings %}
+          <tr>
+            <td>{{ booking.date }}</td>
+            <td>{{ booking.to_date }}</td>
+            <td>{{ booking.name }}</td>
+            <td>{{ booking.email }}</td>
+            <td>{{ booking.department }}</td>
+            <td>{{ booking.attendees }}</td>
+            <td>{{ booking.room_type }}</td>
+            <td>{{ booking.start_time }}</td>
+            <td>{{ booking.end_time }}</td>
+            <td>{{ booking.details }}</td>
+            <td>
+              <form action="{{ url_for('delete_booking', booking_id=booking.id) }}" method="post">
+                <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     {% else %}
-      <p class="text-center">No bookings yet.</p>
+      <p class="text-center mt-3">No bookings yet.</p>
     {% endif %}
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
