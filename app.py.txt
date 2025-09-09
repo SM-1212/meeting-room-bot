@@ -43,6 +43,35 @@ def index():
 @app.route("/download")
 def download():
     return send_file(BOOKINGS_FILE, as_attachment=True)
+from flask import Response
+import csv
+import io
+
+@app.route("/download")
+def download_csv():
+    bookings = get_all_bookings()
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Write header
+    writer.writerow([
+        "From Date", "To Date", "Name", "Email", "Department",
+        "Attendees", "Room Type", "Start Time", "End Time", "Details"
+    ])
+
+    # Write data
+    for b in bookings:
+        writer.writerow([
+            b["date"], b["to_date"], b["name"], b["email"], b["department"],
+            b["attendees"], b["room_type"], b["start_time"], b["end_time"], b["details"]
+        ])
+
+    output.seek(0)
+    return Response(
+        output,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=bookings.csv"}
+    )
 
 if __name__ == "__main__":
     app.run(debug=True)
