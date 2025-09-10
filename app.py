@@ -1,77 +1,78 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file
-import csv
-import os
-from datetime import datetime
+from flask import Flask, request, jsonify, render_template
+import sqlite3
 
 app = Flask(__name__)
 
-BOOKINGS_FILE = "bookings.csv"
+# Initialize DB
+def init_db():
+    with sqlite3.connect("bookings.db") as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS bookings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                room TEXT NOT NULL,
+                start_time TEXT NOT NULL,
+                end_time TEXT NOT NULL
+            )
+        """)
+    print("Database initialized.")
 
-# Ensure bookings.csv exists with headers
-if not os.path.exists(BOOKINGS_FILE):
-    with open(BOOKINGS_FILE, mode="w", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(["Name", "Email", "Date", "Time", "Guests", "Timestamp"])
+init_db()
 
-@app.route("/", methods=["GET", "POST"])
+
+@app.route("/")
 def index():
-    if request.method == "POST":
-        # Get form data
-        name = request.form["name"]
-        email = request.form["email"]
-        date = request.form["date"]
-        time = request.form["time"]
-        guests = request.form["guests"]
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return render_template("index.html")
 
-        # Append booking to CSV
-        with open(BOOKINGS_FILE, mode="a", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow([name, email, date, time, guests, timestamp])
 
-        return redirect(url_for("index"))
+# Book a room
+@app.route("/book", methods=["POST"])
+def book_room():
+    data = request.get_json()
+    room = data.get("room")
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
 
-    # Load existing bookings
-    bookings = []
-    with open(BOOKINGS_FILE, mode="r") as file:
-        reader = csv.reader(file)
-        next(reader)  # Skip header
-        bookings = list(reader)
+    if not room or not start_time or not end_time:
+        return jsonify({"error": "Missing required fields"}), 400
 
-    return render_template("index.html", bookings=bookings)
+    with sqlite3.connect("bookings.db") as conn:
+        conn.execute(
+            "INSERT INTO bookings (room, start_time, end_time) VALUES (?, ?, ?)",
+            (room, start_time, end_time),
+        )
+        conn.commit()
 
-@app.route("/download")
-def download():
-    return send_file(BOOKINGS_FILE, as_attachment=True)
-from flask import Response
-import csv
-import io
+    return jsonify({"message": "Room booked successfully!"})
 
-@app.route("/download")
-def download_csv():
-    bookings = get_all_bookings()
-    output = io.StringIO()
-    writer = csv.writer(output)
 
-    # Write header
-    writer.writerow([
-        "From Date", "To Date", "Name", "Email", "Department",
-        "Attendees", "Room Type", "Start Time", "End Time", "Details"
-    ])
+# View all bookings
+@app.route("/bookings", methods=["GET"])
+def view_bookings():
+    with sqlite3.connect("bookings.db") as conn:
+        cursor = conn.execute("SELECT id, room, start_time, end_time FROM bookings")
+        bookings = [
+            {
+                "id": row[0],
+                "room": row[1],
+                "start_time": row[2],
+                "end_time": row[3],
+            }
+            for row in cursor.fetchall()
+        ]
+    return jsonify(bookings)
 
-    # Write data
-    for b in bookings:
-        writer.writerow([
-            b["date"], b["to_date"], b["name"], b["email"], b["department"],
-            b["attendees"], b["room_type"], b["start_time"], b["end_time"], b["details"]
-        ])
 
-    output.seek(0)
-    return Response(
-        output,
-        mimetype="text/csv",
-        headers={"Content-Disposition": "attachment;filename=bookings.csv"}
-    )
+# Cancel a booking
+@app.route("/cancel/<int:booking_id>", methods=["DELETE"])
+def cancel_booking(booking_id):
+    with sqlite3.connect("bookings.db") as conn:
+        cursor = conn.execute("DELETE FROM bookings WHERE id = ?", (booking_id,))
+        conn.commit()
+        if cursor.rowcount == 0:
+            return jsonify({"error": "Booking not found"}), 404
+
+    return jsonify({"message": f"Booking ID {booking_id} cancelled successfully!"})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
